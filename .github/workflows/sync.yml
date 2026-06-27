@@ -1,10 +1,10 @@
-name: Auto Merge Upstream
+name: Auto Merge Upstream Generic
 
 on:
   schedule:
-    # 依然是每 6 小时执行一次
+    # 每 6 小时自动运行一次
     - cron: '0 */6 * * *' 
-  workflow_dispatch:
+  workflow_dispatch: # 允许手动触发
 
 jobs:
   merge:
@@ -12,11 +12,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      # 1. 检出你自己的仓库代码
+      # 1. 检出当前仓库代码
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # 必须提取完整历史记录，这是自动合并比对的前提
+          fetch-depth: 0 
 
       # 2. 配置 GitHub 机器人的 Git 基础身份
       - name: Configure Git
@@ -24,15 +24,26 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      # 3. 拉取上游代码并进行智能合并
+      # 3. 动态识别并合并上游代码
       - name: Merge Upstream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 必须提供 Token 才能让 CLI 工具查询仓库信息
         run: |
-          # 指定原作者的仓库地址作为上游
-          git remote add upstream https://github.com/ZhuLinsen/daily_stock_analysis.git
+          # ① 动态获取当前 Fork 仓库的父仓库（原作者仓库）相对路径 (例如: ZhuLinsen/daily_stock_analysis)
+          UPSTREAM_REPO=$(gh repo view $GITHUB_REPOSITORY --json parent --jq '.parent.owner.login + "/" + .parent.name')
+          echo "找到原作者仓库: $UPSTREAM_REPO"
+          
+          # ② 将其添加为远程上游并拉取
+          git remote add upstream "https://github.com/${UPSTREAM_REPO}.git"
           git fetch upstream
           
-          # 自动合并原作者的 main 分支到你的仓库，--no-edit 表示全自动不弹窗
-          git merge upstream/main --no-edit
+          # ③ 动态获取原作者仓库的默认分支名（自动识别是 main 还是 master）
+          UPSTREAM_BRANCH=$(gh repo view $UPSTREAM_REPO --json defaultBranchRef --jq '.defaultBranchRef.name')
+          echo "原作者默认分支为: $UPSTREAM_BRANCH"
           
-          # 将合并后的最新代码推送到你的仓库
-          git push origin main
+          # ④ 获取你当前仓库的当前分支名
+          CURRENT_BRANCH=$(git branch --show-current)
+          
+          # ⑤ 执行智能合并并推送
+          git merge "upstream/$UPSTREAM_BRANCH" --no-edit
+          git push origin "$CURRENT_BRANCH"
