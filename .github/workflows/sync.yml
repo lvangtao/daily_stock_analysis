@@ -1,0 +1,21 @@
+name: Auto Sync Upstream
+
+on:
+  schedule:
+    # 这里的 cron 表达式代表每隔 6 小时执行一次 (UTC 时间)
+    # 你可以根据项目的实际更新频率修改，例如 '0 * * * *' 代表每小时一次
+    - cron: '0 */6 * * *' 
+  workflow_dispatch: # 保留这个选项，允许你在网页上手动点击按钮触发同步
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 赋予脚本推送到代码库的权限
+
+    steps:
+      - name: Sync current branch with upstream
+        # 使用 GitHub 官方的 CLI 工具直接同步 Fork
+        run: gh repo sync $GITHUB_REPOSITORY
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
