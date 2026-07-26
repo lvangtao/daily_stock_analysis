@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [修复] 将 `TencentFetcher` 的默认优先级从与 Efinance 并列的 `0` 调整为最终兜底的 `5`，避免 Efinance 短暂失败时越过其余 A 股日 K 数据源，并新增 `TENCENT_PRIORITY` 环境变量用于显式覆盖（refs #2032）。
 - [修复] macOS unsigned 打包显式禁用 Electron 签名与 Hardened Runtime，在冻结后端首次执行前及 electron-builder `afterPack` 阶段清理残缺签名，并对原始应用和 DMG 挂载产物执行签名审计，避免再次发布带损坏签名的桌面包；该缓解不替代 Apple Developer 签名与公证（refs #2075）。
 - [修复] WebUI 分开展示发布版本、代码版本与构建时间，并通过构建输入摘要识别 `rsync -a` 保留时间戳造成的旧静态资源复用（fixes #2093）。
 - [chore] 暂停 PR Review 的自动触发，仅保留 `workflow_dispatch` 手动入口，避免辅助评审重复运行及评论权限失败产生误导性红灯；正式 CI 检查保持不变。
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [修复] DataFetcherManager 港股路由：4-5 位纯数字裸港股码（如 `02513`、`00700`、`0001`）此前仅 `_is_hk_market` 单侧识别，`AkshareFetcher._is_hk_code` 与 `LongbridgeFetcher._is_hk_code` 内仍只接受 5 位裸数字，导致配置了 Yfinance/Akshare/Longbridge 的港股日线/实时链路对 4 位裸港股码静默失败。本 PR 同步三处 `_is_hk_code` 契约到 4-5 位裸数字，并新增 `DataFetcherManager` 港股路由回归测试，避免上游路由判 HK、下游 provider 不识别的部分调用链断口（fixes #2091）
 - [修复] Web 设置页和通知测试入口补齐普通钉钉群机器人配置，支持安全遮罩地保存 `DINGTALK_WEBHOOK_URL` / `DINGTALK_SECRET`、查看专属帮助并发送钉钉测试通知（refs #1957）。
 - [修复] Agent Chat 普通与流式接口在请求未指定 `report_language` 时继承全局 `REPORT_LANGUAGE`，显式请求值仍保持优先，避免回复语言与报告配置不一致。
+- [修复] AkShare 港股实时行情增加 20 分钟全市场数据缓存与并发冷启动 single-flight，热缓存命中不再执行网络限速等待；主接口返回结构异常时仍保持新浪备用接口降级，避免多港股组合快照重复拉取全市场数据而长时间阻塞（refs #1852）。
 
 ## [3.27.0] - 2026-07-19
 
